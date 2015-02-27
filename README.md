@@ -42,7 +42,7 @@ end
 
 The `options` argument to `settings.load` is a array of options, each potentially with a `sub` array of options.
 
-The `main.lua` file provides a simple yet complete example.
+The [main.lua](main.lua) file provides a simple yet complete example.
 
 ### Additional Functions
 
