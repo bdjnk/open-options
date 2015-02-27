@@ -19,6 +19,7 @@ local drag = {
 	state = false,
 }
 local mFont, dFont
+local tick
 
 function settings.setup(menu)
 	options = menu
@@ -42,6 +43,10 @@ function settings.setup(menu)
 
 	mFont = love.graphics.newFont(18)
 	dFont = love.graphics.newFont(14)
+end
+
+function settings.tickCallback(callback)
+	tick = callback
 end
 
 function settings.update(dt)
@@ -110,6 +115,7 @@ function settings.mousereleased(x, y, button)
 						sub = sub[path[level]].sub
 					end
 					if set then set(option.val) end
+					tick()
 					return -- all done here
 				end
 			end
@@ -146,6 +152,7 @@ function f.goRight()
 			sub = sub[index].sub
 		end
 		path[#path+1] = sel
+		tick()
 	end
 end
 function f.goLeft()
@@ -158,6 +165,7 @@ function f.goLeft()
 	end
 	if #path > 1 then
 		path[#path] = nil
+		tick()
 	end
 end
 
@@ -176,6 +184,7 @@ function f.goDown()
 	if set then -- apply setting
 		set(sub[path[#path]].val)
 	end
+	tick()
 end
 
 function f.goUp()
@@ -193,6 +202,7 @@ function f.goUp()
 	if set then -- apply setting
 		set(sub[path[#path]].val)
 	end
+	tick()
 end
 
 function settings.draw()

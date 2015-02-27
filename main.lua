@@ -53,7 +53,6 @@ local options = {
 				val = 1.0,
 				set = function(val)
 					tick:setVolume(val)
-					tock:setVolume(val)
 				end,
 				sel = 8,
 				sub = {
@@ -80,11 +79,10 @@ local options = {
 
 function love.load(arg)
 	settings.setup(options)
+	settings.tickCallback(function() tick:play() end)
 
 	tick = love.audio.newSource("tick.mp3", "static")
-	tock = love.audio.newSource("tock.mp3", "static")
 	tick:setVolume(0.3)
-	tock:setVolume(0.3)
 
 	atmo = love.audio.newSource("atmosphere.mp3", "stream")
 	atmo:setVolume(0.1)
