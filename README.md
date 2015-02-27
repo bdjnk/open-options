@@ -40,9 +40,9 @@ end
 
 ### The Options Table
 
-The `options` argument to `settings.load` is a array of options, each potentially with a `sub` array of options.
+The `options` argument to `settings.load` is a array of options, each potentially with a `sub` array of options, and so on.
 
-The [main.lua](main.lua) file provides a simple yet complete example.
+The [main.lua](main.lua) file provides a straightforward example.
 
 ### Additional Functions
 

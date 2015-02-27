@@ -78,6 +78,8 @@ local options = {
 }
 
 function love.load(arg)
+	love.window.setMode(700, 350)
+
 	settings.load(options)
 	settings.setSelectCallback(function() tick:play() end)
 
