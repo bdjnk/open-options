@@ -1,5 +1,5 @@
 
-settings = {}
+local settings = {}
 
 local keys = {
 	up    = "up",
