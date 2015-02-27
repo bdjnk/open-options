@@ -78,8 +78,8 @@ local options = {
 }
 
 function love.load(arg)
-	settings.setup(options)
-	settings.tickCallback(function() tick:play() end)
+	settings.load(options)
+	settings.setSelectCallback(function() tick:play() end)
 
 	tick = love.audio.newSource("tick.mp3", "static")
 	tick:setVolume(0.3)

@@ -9,7 +9,7 @@ local keys = {
 	exit  = "escape"
 }
 
-local f = {}
+local internal = {}
 local path = { 1 }
 local options
 local maxdepth
@@ -18,35 +18,37 @@ local drag = {
 	x = 0, dx = 0,
 	state = false,
 }
+local space -- todo: this is currently bugged
+local viewH, viewW
 local mFont, dFont
-local tick
+local selectCallback
 
-function settings.setup(menu)
+function settings.load(menu)
 	options = menu
 
-	function recurse(sub)
+	function getDepth(sub)
 		deepest = 0
 		for k,v in ipairs(sub) do
 			if v.sub then
-				depth = recurse(v.sub)
+				depth = getDepth(v.sub)
 				if depth > deepest then deepest = depth end
 			end
 		end
 		return deepest + 1
 	end
-	maxdepth = recurse(menu)
+	maxdepth = getDepth(menu)
+	
+	space = 0
 
 	viewH = love.graphics.getHeight()
 	viewW = love.graphics.getWidth()
-
-	space = 0
 
 	mFont = love.graphics.newFont(18)
 	dFont = love.graphics.newFont(14)
 end
 
-function settings.tickCallback(callback)
-	tick = callback
+function settings.setSelectCallback(callback)
+	selectCallback = callback
 end
 
 function settings.update(dt)
@@ -60,11 +62,11 @@ function settings.update(dt)
 		if drag.dy > fH then
 			drag.dy = 0
 			drag.state = true
-			f.goUp()
+			internal.goUp()
 		elseif drag.dy < -fH then
 			drag.dy = 0
 			drag.state = true
-			f.goDown()
+			internal.goDown()
 		end
 	end
 end
@@ -72,18 +74,18 @@ end
 function settings.mousepressed(x, y, button)
 	local vWd = viewW/maxdepth
 	while x < vWd*(#path-1) do
-		f.goLeft()
+		internal.goLeft()
 	end
 	while x > vWd*(#path) do
-		f.goRight()
+		internal.goRight()
 	end
 	if button == "l" then
 		drag.x = x
 		drag.y = y
 	elseif button == "wd" then
-		f.goDown()
+		internal.goDown()
 	elseif button == "wu" then
-		f.goUp()
+		internal.goUp()
 	end
 end
 
@@ -99,7 +101,7 @@ function settings.mousereleased(x, y, button)
 			return
 		end
 
-		function isOptionClicked(sub, level, sel)
+		function findClickedOption(sub, level, sel)
 			if not sub then return end
 			local selected = path[level] and path[level] or sel
 			for index,option in ipairs(sub) do
@@ -115,15 +117,15 @@ function settings.mousereleased(x, y, button)
 						sub = sub[path[level]].sub
 					end
 					if set then set(option.val) end
-					tick()
+					selectCallback()
 					return -- all done here
 				end
 			end
 			if path[level] and selected ~= 0 then
-				isOptionClicked(sub[selected].sub, level+1, sub[selected].sel)
+				findClickedOption(sub[selected].sub, level+1, sub[selected].sel)
 			end
 		end
-		isOptionClicked(options, 1, 1)
+		findClickedOption(options, 1, 1)
 	end
 end
 
@@ -132,18 +134,18 @@ function settings.keyreleased(key)
 		return false
 	end
 	if key == keys.right then
-		f.goRight()
+		internal.goRight()
 	elseif key == keys.left then
-		f.goLeft()
+		internal.goLeft()
 	elseif key == keys.down then
-		f.goDown()
+		internal.goDown()
 	elseif key == keys.up then
-		f.goUp()
+		internal.goUp()
 	end
 	return true
 end
 
-function f.goRight()
+function internal.goRight()
 	if #path > 0 then
 		local sub = options
 		local sel
@@ -152,10 +154,10 @@ function f.goRight()
 			sub = sub[index].sub
 		end
 		path[#path+1] = sel
-		tick()
+		selectCallback()
 	end
 end
-function f.goLeft()
+function internal.goLeft()
 	local sub = options
 	for level,index in ipairs(path) do
 		if sub[index] and sub[index].sel and path[level+1] then
@@ -165,11 +167,11 @@ function f.goLeft()
 	end
 	if #path > 1 then
 		path[#path] = nil
-		tick()
+		selectCallback()
 	end
 end
 
-function f.goDown()
+function internal.goDown()
 	local sub = options
 	local set
 	for level = 1, #path-1 do
@@ -184,10 +186,10 @@ function f.goDown()
 	if set then -- apply setting
 		set(sub[path[#path]].val)
 	end
-	tick()
+	selectCallback()
 end
 
-function f.goUp()
+function internal.goUp()
 	local sub = options
 	local set
 	for level = 1, #path-1 do
@@ -202,7 +204,7 @@ function f.goUp()
 	if set then -- apply setting
 		set(sub[path[#path]].val)
 	end
-	tick()
+	selectCallback()
 end
 
 function settings.draw()
