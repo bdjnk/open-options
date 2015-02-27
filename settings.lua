@@ -1,8 +1,5 @@
-local flux = require "lib.flux"
-local lume = require "lib.lume"
-local look = require "lib.inspect"
 
-conf = {}
+settings = {}
 
 local keys = {
 	up    = "up",
@@ -14,7 +11,7 @@ local keys = {
 
 local f = {}
 local path = { 1 }
-local settings
+local options
 local maxdepth
 local drag = {
 	y = 0, dy = 0,
@@ -23,8 +20,8 @@ local drag = {
 }
 local mFont, dFont
 
-function conf.setup(menu)
-	settings = menu
+function settings.setup(menu)
+	options = menu
 
 	function recurse(sub)
 		deepest = 0
@@ -37,16 +34,17 @@ function conf.setup(menu)
 		return deepest + 1
 	end
 	maxdepth = recurse(menu)
-	--print(maxdepth)
+
+	viewH = love.graphics.getHeight()
+	viewW = love.graphics.getWidth()
+
+	space = 0
 
 	mFont = love.graphics.newFont(18)
 	dFont = love.graphics.newFont(14)
 end
 
-function conf.setkeys(down, left, up, right, exit)
-end
-
-function conf.update(dt)
+function settings.update(dt)
 	if love.mouse.isDown("l") then
 		local fH = mFont:getHeight()*mFont:getLineHeight()
 		local mx,my = love.mouse.getPosition()
@@ -57,18 +55,16 @@ function conf.update(dt)
 		if drag.dy > fH then
 			drag.dy = 0
 			drag.state = true
-			--drag.dy = drag.dy - 20
 			f.goUp()
 		elseif drag.dy < -fH then
 			drag.dy = 0
 			drag.state = true
-			--drag.dy = drag.dy + 20
 			f.goDown()
 		end
 	end
 end
 
-function conf.mousepressed(x, y, button)
+function settings.mousepressed(x, y, button)
 	local vWd = viewW/maxdepth
 	while x < vWd*(#path-1) do
 		f.goLeft()
@@ -86,7 +82,7 @@ function conf.mousepressed(x, y, button)
 	end
 end
 
-function conf.mousereleased(x, y, button)
+function settings.mousereleased(x, y, button)
 	local vWd = viewW/maxdepth
 	local fH = mFont:getHeight()*mFont:getLineHeight()
 	
@@ -98,21 +94,16 @@ function conf.mousereleased(x, y, button)
 			return
 		end
 
-		--print("=========================")
-		-- columns of options (moves vertically)
-		function recurse(sub, level, sel)
+		function isOptionClicked(sub, level, sel)
 			if not sub then return end
 			local selected = path[level] and path[level] or sel
 			for index,option in ipairs(sub) do
-				-- clickable area
 				local ox,oy,ow,oh = vWd*(level-1), viewH/2-fH/2-(selected-index)*(fH+10), vWd, fH+space*2
-				if x > ox and x < ox+ow and y > oy and y < oy+oh then
-					-- we've clicked an option
+				if x > ox and x < ox+ow and y > oy and y < oy+oh then -- we've clicked an option
 					path[level] = index
-					path = lume.slice(path, 1, level)
-					--print("index:"..index..", level:"..level..", path:"..look(path).."\nsub:"..look(sub))
+					for i = #path, level+1, -1 do path[i] = nil end -- remove extra path
 
-					sub = settings
+					sub = options
 					local set
 					for level = 1, #path-1 do
 						set = sub[path[level]].set
@@ -120,25 +111,23 @@ function conf.mousereleased(x, y, button)
 					end
 					if set then set(option.val) end
 					return -- all done here
-
 				end
 			end
 			if path[level] and selected ~= 0 then
-				recurse(sub[selected].sub, level+1, sub[selected].sel)
+				isOptionClicked(sub[selected].sub, level+1, sub[selected].sel)
 			end
 		end
-		recurse(settings, 1, 1)
+		isOptionClicked(options, 1, 1)
 	end
 end
 
-function conf.keyreleased(key)
+function settings.keyreleased(key)
 	if key == keys.exit then
-		--print("return false")
 		return false
 	end
-	if key == keys.right then -- delve into the menu
+	if key == keys.right then
 		f.goRight()
-	elseif key == keys.left then -- back out of the menu
+	elseif key == keys.left then
 		f.goLeft()
 	elseif key == keys.down then
 		f.goDown()
@@ -150,7 +139,7 @@ end
 
 function f.goRight()
 	if #path > 0 then
-		local sub = settings
+		local sub = options
 		local sel
 		for level,index in ipairs(path) do
 			sel = sub[index].sel
@@ -160,7 +149,7 @@ function f.goRight()
 	end
 end
 function f.goLeft()
-	local sub = settings
+	local sub = options
 	for level,index in ipairs(path) do
 		if sub[index] and sub[index].sel and path[level+1] then
 			sub[index].sel = path[level+1]
@@ -173,7 +162,7 @@ function f.goLeft()
 end
 
 function f.goDown()
-	local sub = settings
+	local sub = options
 	local set
 	for level = 1, #path-1 do
 		set = sub[path[level]].set
@@ -190,7 +179,7 @@ function f.goDown()
 end
 
 function f.goUp()
-	local sub = settings
+	local sub = options
 	local set
 	for level = 1, #path-1 do
 		set = sub[path[level]].set
@@ -206,7 +195,7 @@ function f.goUp()
 	end
 end
 
-function conf.draw()
+function settings.draw()
 	local vWd = viewW/maxdepth
 
 	local fH = mFont:getHeight()*mFont:getLineHeight()
@@ -231,7 +220,7 @@ function conf.draw()
 	love.graphics.rectangle("fill", vWd*(#path-1)+space, viewH/2-fH/2, vWd-space*2, fH)
 	
 	-- columns of options (moves vertically)
-	function recurse(sub, level, sel)
+	function printOptions(sub, level, sel)
 		if not sub then return end
 		local selected = path[level] and path[level] or sel
 		for index,option in ipairs(sub) do
@@ -241,16 +230,11 @@ function conf.draw()
 				viewH/2-fH/2-(selected-index)*(fH+10))
 		end	
 		if path[level] and selected ~= 0 then
-			recurse(sub[selected].sub, level+1, sub[selected].sel)
+			printOptions(sub[selected].sub, level+1, sub[selected].sel)
 		end
 	end
-	recurse(settings, 1, 1)
-	
-	--love.graphics.setFont(dFont)
-	--love.graphics.printf(look(drag), 10, 10, 800)
-	--love.graphics.printf(look(settings), 10, 10, 800)
-	--love.graphics.printf(look(path), 310, 10, 800)
-	--return
+	printOptions(options, 1, 1)
 end
 
-return conf
+return settings
+
